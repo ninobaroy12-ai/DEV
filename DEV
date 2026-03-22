@@ -1,0 +1,166 @@
+local UserInputService = game:GetService("UserInputService")
+local TweenService = game:GetService("TweenService")
+local Players = game:GetService("Players")
+local Player = Players.LocalPlayer
+
+local DEV = {}
+
+
+local function MakeDraggable(UI)
+    local dragging, dragInput, dragStart, startPos
+    UI.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            dragging = true
+            dragStart = input.Position
+            startPos = UI.Position
+        end
+    end)
+    UserInputService.InputChanged:Connect(function(input)
+        if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
+            local delta = input.Position - dragStart
+            UI.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+        end
+    end)
+    UI.InputEnded:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            dragging = false
+        end
+    end)
+end
+
+function DEV:CreateWindow(hubName)
+    local ScreenGui = Instance.new("ScreenGui", Player.PlayerGui)
+    ScreenGui.Name = "LancelotLibrary"
+    ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+
+    
+    local ToggleBtn = Instance.new("TextButton", ScreenGui)
+    ToggleBtn.Size = UDim2.new(0, 50, 0, 50)
+    ToggleBtn.Position = UDim2.new(0, 20, 0, 20)
+    ToggleBtn.BackgroundColor3 = Color3.fromRGB(25, 25, 30)
+    ToggleBtn.Text = "L"
+    ToggleBtn.TextColor3 = Color3.fromRGB(0, 200, 255)
+    ToggleBtn.Font = Enum.Font.GothamBold
+    ToggleBtn.TextSize = 20
+    Instance.new("UICorner", ToggleBtn).CornerRadius = UDim.new(1, 0)
+    Instance.new("UIStroke", ToggleBtn).Color = Color3.fromRGB(0, 200, 255)
+    MakeDraggable(ToggleBtn)
+
+    -- 2. MAIN WINDOW
+    local MainFrame = Instance.new("Frame", ScreenGui)
+    MainFrame.Size = UDim2.new(0, 550, 0, 350)
+    MainFrame.Position = UDim2.new(0.5, -275, 0.5, -175)
+    MainFrame.BackgroundColor3 = Color3.fromRGB(15, 15, 17)
+    MainFrame.Visible = false
+    Instance.new("UICorner", MainFrame).CornerRadius = UDim.new(0, 10)
+    MakeDraggable(MainFrame)
+
+    -- Sidebar (NASA GILID LANG)
+    local Sidebar = Instance.new("Frame", MainFrame)
+    Sidebar.Size = UDim2.new(0, 140, 1, -20)
+    Sidebar.Position = UDim2.new(0, 10, 0, 10)
+    Sidebar.BackgroundColor3 = Color3.fromRGB(20, 20, 23)
+    Instance.new("UICorner", Sidebar)
+
+    local TabContainer = Instance.new("ScrollingFrame", Sidebar)
+    TabContainer.Size = UDim2.new(1, -10, 1, -10)
+    TabContainer.Position = UDim2.new(0, 5, 0, 5)
+    TabContainer.BackgroundTransparency = 1
+    TabContainer.ScrollBarThickness = 0
+    local TabLayout = Instance.new("UIListLayout", TabContainer)
+    TabLayout.Padding = UDim.new(0, 8) -- Maayos na spacing, hindi siksikan
+
+    -- Page Container (Dito lalabas yung buttons)
+    local PageHolder = Instance.new("Frame", MainFrame)
+    PageHolder.Size = UDim2.new(1, -170, 1, -20)
+    PageHolder.Position = UDim2.new(0, 160, 0, 10)
+    PageHolder.BackgroundTransparency = 1
+
+    ToggleBtn.MouseButton1Click:Connect(function() MainFrame.Visible = not MainFrame.Visible end)
+
+    local TabLib = {}
+
+    function TabLib:CreateTab(name)
+        local Page = Instance.new("ScrollingFrame", PageHolder)
+        Page.Size = UDim2.new(1, 0, 1, 0)
+        Page.BackgroundTransparency = 1
+        Page.Visible = false
+        Page.ScrollBarThickness = 2
+        local PageLayout = Instance.new("UIListLayout", Page)
+        PageLayout.Padding = UDim.new(0, 7)
+
+        local TabBtn = Instance.new("TextButton", TabContainer)
+        TabBtn.Size = UDim2.new(1, 0, 0, 35)
+        TabBtn.BackgroundColor3 = Color3.fromRGB(30, 30, 35)
+        TabBtn.Text = name
+        TabBtn.TextColor3 = Color3.fromRGB(150, 150, 150)
+        TabBtn.Font = Enum.Font.GothamSemibold
+        Instance.new("UICorner", TabBtn)
+
+        TabBtn.MouseButton1Click:Connect(function()
+            for _, v in pairs(PageHolder:GetChildren()) do v.Visible = false end
+            for _, v in pairs(TabContainer:GetChildren()) do 
+                if v:IsA("TextButton") then v.TextColor3 = Color3.fromRGB(150, 150, 150) end 
+            end
+            Page.Visible = true
+            TabBtn.TextColor3 = Color3.fromRGB(0, 200, 255)
+        end)
+
+        local Elements = {}
+
+        -- Button
+        function Elements:CreateButton(txt, cb)
+            local b = Instance.new("TextButton", Page)
+            b.Size = UDim2.new(1, -10, 0, 38)
+            b.BackgroundColor3 = Color3.fromRGB(35, 35, 40)
+            b.Text = txt
+            b.TextColor3 = Color3.fromRGB(255, 255, 255)
+            Instance.new("UICorner", b)
+            b.MouseButton1Click:Connect(function() task.spawn(cb) end)
+        end
+
+        -- Toggle
+        function Elements:CreateToggle(txt, def, cb)
+            local s = def
+            local t = Instance.new("TextButton", Page)
+            t.Size = UDim2.new(1, -10, 0, 38)
+            t.BackgroundColor3 = Color3.fromRGB(35, 35, 40)
+            t.Text = "  "..txt..(s and " [ON]" or " [OFF]")
+            t.TextColor3 = s and Color3.fromRGB(0, 255, 150) or Color3.fromRGB(255, 100, 100)
+            t.TextXAlignment = Enum.TextXAlignment.Left
+            Instance.new("UICorner", t)
+            t.MouseButton1Click:Connect(function()
+                s = not s
+                t.Text = "  "..txt..(s and " [ON]" or " [OFF]")
+                t.TextColor3 = s and Color3.fromRGB(0, 255, 150) or Color3.fromRGB(255, 100, 100)
+                task.spawn(cb, s)
+            end)
+        end
+
+        -- Slider
+        function Elements:CreateSlider(txt, min, max, def, cb)
+            local f = Instance.new("Frame", Page); f.Size = UDim2.new(1,-10,0,45); f.BackgroundColor3 = Color3.fromRGB(35,35,40)
+            Instance.new("UICorner", f)
+            local l = Instance.new("TextLabel", f); l.Size = UDim2.new(1,0,0,20); l.Text = "  "..txt..": "..def; l.TextColor3 = Color3.fromRGB(255,255,255); l.BackgroundTransparency = 1; l.TextXAlignment = Enum.TextXAlignment.Left
+            local b = Instance.new("Frame", f); b.Size = UDim2.new(0.9,0,0,4); b.Position = UDim2.new(0.05,0,0.7,0); b.BackgroundColor3 = Color3.fromRGB(60,60,60)
+            local fill = Instance.new("Frame", b); fill.Size = UDim2.new((def-min)/(max-min),0,1,0); fill.BackgroundColor3 = Color3.fromRGB(0,200,255)
+            b.InputBegan:Connect(function(i)
+                if i.UserInputType == Enum.UserInputType.MouseButton1 then
+                    local c; c = UserInputService.InputChanged:Connect(function(input)
+                        if input.UserInputType == Enum.UserInputType.MouseMovement then
+                            local p = math.clamp((input.Position.X - b.AbsolutePosition.X) / b.AbsoluteSize.X, 0, 1)
+                            local v = math.floor(min + (max-min)*p)
+                            fill.Size = UDim2.new(p,0,1,0); l.Text = "  "..txt..": "..v; task.spawn(cb, v)
+                        end
+                    end)
+                    UserInputService.InputEnded:Connect(function(input) if input.UserInputType == Enum.UserInputType.MouseButton1 then c:Disconnect() end end)
+                end
+            end)
+        end
+
+        return Elements
+    end
+    return TabLib
+end
+
+return DEV
